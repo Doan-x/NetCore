@@ -20,21 +20,22 @@ class Program
     // main => thread chính
     public static void Main(string[] args)
     {
+        CancellationTokenSource cts = new CancellationTokenSource();
         // Tạo thread => tạo một object thread => default foreground thread
-        var t1 = new Thread(
-        () =>
-        {
+        //var t1 = new Thread(
+        //() =>
+        //{
 
-            while (!interrupt)
-            {
-                Console.WriteLine("Hello! 1 - sleep 1s");
-                // Tạm dừng thread
-                Thread.Sleep(1000);
-            }
-        });
-        // Thread không tham số
-        var t2 = new Thread(new ThreadStart(PrintNoParameter));
-        var t2a = new Thread(PrintNoParameter2);
+        //    while (!interrupt)
+        //    {
+        //        Console.WriteLine("Hello! 1 - sleep 1s");
+        //        // Tạm dừng thread
+        //        Thread.Sleep(1000);
+        //    }
+        //});
+        //// Thread không tham số
+        //var t2 = new Thread(new ThreadStart(PrintNoParameter));
+        //var t2a = new Thread(PrintNoParameter2);
 
         // Thread Có tham số, nhưng chỉ 1 tham số kiểu object
         var t3 = new Thread(new ParameterizedThreadStart(PrintWithParameter));
@@ -46,19 +47,25 @@ class Program
         //t2.IsBackground = true;
 
         // Run thread => system bắt đầu tạo 1 thread mới
-        t1.Start(); // Hello! 1  sleep 1s
-        t2.Start(); // Hello world 1 sleep 1s
-        t2a.Start(); // Hello world 2 sleep 2s
+        //t1.Start(); // Hello! 1  sleep 1s
+        //t2.Start(); // Hello world 1 sleep 1s
+        //t2a.Start(); // Hello world 2 sleep 2s
 
         // đối tượng obj sẽ được truyền vào thread.
-        t3.Start("thread 3"); // Hello no name -  sleep 3s
-        t4.Start();          // Hello no name  - sleep 3s
+        //t3.Start("thread 3"); // Hello no name -  sleep 3s
+        //t4.Start();          // Hello no name  - sleep 3s
 
-        t5.Start(new DemoParam(){ Name = "Trong", DelayValue = 4000});
+        t4.Start(new DemoParam(){ Name = "Trong", DelayValue = 1000,CancellationToken= cts.Token });
+        t5.Start(new DemoParam() { Name = "Doan", DelayValue = 2000, CancellationToken = cts.Token });
+
         Console.ReadLine();
 
         // Ngắt thread khi main thread dừng
         interrupt = true;
+        // Sử dụng CancellationTokenSource để ngắt
+        cts.Cancel();
+        // Ngắt sau 5s
+        cts.CancelAfter(5000);
 
     }
     public static void PrintNoParameter()
@@ -82,9 +89,16 @@ class Program
     public static void PrintWithParameter(object? p)
     {
         var param = p as DemoParam;
-        while (p != null && !interrupt) {
-            Console.WriteLine($"Hello {param?.Name ?? "No name"}! - sleep {(param?.DelayValue ?? 3000)/1000}s");
-            Thread.Sleep(param?.DelayValue ?? 3000);
+        if (param != null) {
+            while (!param.CancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine($"Hello {param.Name}! - sleep {(param.DelayValue) / 1000}s");
+                Thread.Sleep(param.DelayValue);
+            }
+        }
+        else
+        {
+            Console.WriteLine("Object is invalid");
         }
        
     }
@@ -93,4 +107,5 @@ public class DemoParam
 {
     public string? Name { get; set; }
     public int DelayValue {  get; set; }
+    public required CancellationToken CancellationToken { get; set; }
 }
